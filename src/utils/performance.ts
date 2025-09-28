@@ -142,11 +142,11 @@ export function optimizeImageUrl(url: string, width?: number, height?: number): 
 
 // Memory usage monitoring
 export function getMemoryUsage(): number {
-  if (typeof window === 'undefined' || !(window as any).performance?.memory) {
+  if (typeof window === 'undefined' || !(window as unknown as { performance?: { memory?: { usedJSHeapSize: number; jsHeapSizeLimit: number } } }).performance?.memory) {
     return 0;
   }
   
-  const memory = (window as any).performance.memory;
+  const memory = (window as unknown as { performance: { memory: { usedJSHeapSize: number; jsHeapSizeLimit: number } } }).performance.memory;
   return memory.usedJSHeapSize / memory.jsHeapSizeLimit;
 }
 
