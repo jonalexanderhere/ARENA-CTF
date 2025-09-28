@@ -21,6 +21,8 @@ export interface ChallengeFile extends BaseEntity {
   name: string;
   path: string;
   size: number;
+  isTemp?: boolean; // For temporary files before upload
+  file?: File; // For temporary file reference
 }
 
 // Hint

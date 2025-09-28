@@ -1,7 +1,10 @@
+'use client';
+
 import { FaChevronDown, FaChevronUp } from "react-icons/fa";
 import { useEffect, useState } from 'react';
 import { Share_Tech_Mono } from "next/font/google";
 import { GameConfig } from '@/types';
+import ClientOnly from '@/components/common/ClientOnly';
 
 interface GameClockProps {
   timeLeft: string;
@@ -14,10 +17,13 @@ interface GameClockProps {
 const shareTechMono = Share_Tech_Mono({weight: '400', subsets: ['latin']});
 
 export default function GameClock({ gameConfig, isOpen, setIsOpen, isMobile }: GameClockProps) {
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const [currentTime, setCurrentTime] = useState<Date | null>(null);
   const [animatedMs, setAnimatedMs] = useState(99);
 
   useEffect(() => {
+    // Initialize currentTime on client side only
+    setCurrentTime(new Date());
+    
     let frameId: number;
     const animate = () => {
       const now = new Date();
@@ -38,7 +44,7 @@ export default function GameClock({ gameConfig, isOpen, setIsOpen, isMobile }: G
   }, [gameConfig]);
 
   const calculateTimeComponents = () => {
-    if (!gameConfig) return { hours: 0, minutes: 0, seconds: 0, milliseconds: 0, progress: 0 };
+    if (!gameConfig || !currentTime) return { hours: 0, minutes: 0, seconds: 0, milliseconds: 0, progress: 0 };
 
     // Check for infinite time (no end time)
     if (!gameConfig.hasEndTime) {
@@ -108,7 +114,8 @@ export default function GameClock({ gameConfig, isOpen, setIsOpen, isMobile }: G
   };
 
   return (
-    <div className={`relative bg-black ${!isMobile && 'border'}`}>
+    <ClientOnly fallback={<div className="relative bg-black h-32 flex items-center justify-center text-white">Loading clock...</div>}>
+      <div className={`relative bg-black ${!isMobile && 'border'}`}>
       {/* Header - only show if not mobile */}
       {!isMobile && (
         <button
@@ -240,5 +247,6 @@ export default function GameClock({ gameConfig, isOpen, setIsOpen, isMobile }: G
         </div>
       </div>
     </div>
+    </ClientOnly>
   );
 }

@@ -66,35 +66,153 @@ export async function fetchTeam(teamId: string): Promise<Team> {
 }
 
 export async function fetchLeaderboard(): Promise<LeaderboardResponse> {
-  const response = await fetch('/api/leaderboard');
-  if (!response.ok) {
-    throw new Error('Failed to fetch leaderboard');
+  const maxRetries = 3;
+  let lastError: Error | null = null;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetch('/api/leaderboard', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      // Ensure we always return valid data structure
+      return {
+        teams: data.teams || [],
+        currentUserTeam: data.currentUserTeam || null
+      };
+    } catch (error) {
+      lastError = error as Error;
+      console.warn(`Leaderboard fetch attempt ${attempt} failed:`, error);
+      
+      if (attempt < maxRetries) {
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+      }
+    }
   }
-  return response.json();
+
+  console.error('Leaderboard fetch failed after all retries:', lastError);
+  // Return empty leaderboard on error
+  return { teams: [], currentUserTeam: null };
 }
 
 export async function fetchAnnouncements(): Promise<Announcement[]> {
-  const response = await fetch('/api/announcements');
-  if (!response.ok) {
-    throw new Error('Failed to fetch announcements');
+  const maxRetries = 3;
+  let lastError: Error | null = null;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetch('/api/announcements', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      return data || [];
+    } catch (error) {
+      lastError = error as Error;
+      console.warn(`Announcements fetch attempt ${attempt} failed:`, error);
+      
+      if (attempt < maxRetries) {
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+      }
+    }
   }
-  return response.json();
+
+  console.error('Announcements fetch failed after all retries:', lastError);
+  return [];
 }
 
 export async function fetchActivity(): Promise<ActivityLog[]> {
-  const response = await fetch('/api/activity');
-  if (!response.ok) {
-    throw new Error('Failed to fetch activity logs');
+  const maxRetries = 3;
+  let lastError: Error | null = null;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetch('/api/activity', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      return data || [];
+    } catch (error) {
+      lastError = error as Error;
+      console.warn(`Activity fetch attempt ${attempt} failed:`, error);
+      
+      if (attempt < maxRetries) {
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+      }
+    }
   }
-  return response.json();
+
+  console.error('Activity fetch failed after all retries:', lastError);
+  return [];
 }
 
 export async function fetchGameConfig(): Promise<GameConfig> {
-  const response = await fetch('/api/game-config');
-  if (!response.ok) {
-    throw new Error('Failed to fetch game configuration');
+  const maxRetries = 3;
+  let lastError: Error | null = null;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetch('/api/game-config', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      lastError = error as Error;
+      console.warn(`Game config fetch attempt ${attempt} failed:`, error);
+      
+      if (attempt < maxRetries) {
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+      }
+    }
   }
-  return response.json();
+
+  console.error('Game config fetch failed after all retries:', lastError);
+  // Return default game config on error
+  return {
+    id: 'default',
+    startTime: new Date().toISOString(),
+    endTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+    isActive: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    hasEndTime: true
+  };
 }
 
 export async function fetchScoreboardTeams(): Promise<ScoreboardTeam[]> {
@@ -172,11 +290,41 @@ export async function deleteAnnouncement(id: string): Promise<void> {
 }
 
 export async function fetchCategories(): Promise<CategoriesResponse> {
-  const response = await fetch('/api/challenges/categories');
-  if (!response.ok) {
-    throw new Error('Failed to fetch categories');
+  const maxRetries = 3;
+  let lastError: Error | null = null;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetch('/api/challenges/categories', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      return {
+        categories: data.categories || [],
+        challengesByCategory: data.challengesByCategory || {}
+      };
+    } catch (error) {
+      lastError = error as Error;
+      console.warn(`Categories fetch attempt ${attempt} failed:`, error);
+      
+      if (attempt < maxRetries) {
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+      }
+    }
   }
-  return response.json();
+
+  console.error('Categories fetch failed after all retries:', lastError);
+  // Return empty categories on error
+  return { categories: [], challengesByCategory: {} };
 }
 
 export async function createChallenge(challenge: NewChallenge): Promise<Challenge> {
@@ -317,11 +465,42 @@ export async function updateGameConfig(config: GameConfig): Promise<GameConfig> 
 }
 
 export async function fetchSiteConfigurations(): Promise<SiteConfiguration[]> {
-  const response = await fetch('/api/config');
-  if (!response.ok) {
-    throw new Error('Failed to fetch site configurations');
+  const maxRetries = 3;
+  let lastError: Error | null = null;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetch('/api/config', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      lastError = error as Error;
+      console.warn(`Site config fetch attempt ${attempt} failed:`, error);
+      
+      if (attempt < maxRetries) {
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+      }
+    }
   }
-  return response.json();
+
+  console.error('Site config fetch failed after all retries:', lastError);
+  // Return default configurations on error
+  return [
+    { id: '1', key: 'site_title', value: 'PHOENIX ARENA CTF', updatedAt: new Date().toISOString() },
+    { id: '2', key: 'homepage_title', value: 'Welcome to PHOENIX ARENA CTF', updatedAt: new Date().toISOString() },
+    { id: '3', key: 'homepage_subtitle', value: 'Rise from the ashes! Epic cyber battles in the PHOENIX ARENA.', updatedAt: new Date().toISOString() }
+  ];
 }
 
 export async function updateSiteConfiguration(key: string, value: string): Promise<SiteConfiguration> {

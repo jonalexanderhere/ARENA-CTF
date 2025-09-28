@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import { Challenge, NewChallenge, UnlockCondition, ChallengeFile, ApiError } from '@/types';
 import { FaTrash } from 'react-icons/fa';
@@ -123,9 +125,11 @@ export default function ChallengeModal({
             <input
               type="number"
               value={challenge.points}
-              onChange={(e) =>
-                setChallenge({ ...challenge, points: parseInt(e.target.value) })
-              }
+              onChange={(e) => {
+                const value = e.target.value;
+                const points = value === '' ? 0 : parseInt(value) || 0;
+                setChallenge({ ...challenge, points });
+              }}
               className="w-full bg-gray-700 text-white px-3 py-2 rounded"
               required
             />
@@ -181,7 +185,9 @@ export default function ChallengeModal({
                       value={flag.points}
                       onChange={(e) => {
                         const newFlags = [...(challenge.flags || [])];
-                        newFlags[index] = { ...newFlags[index], points: parseInt(e.target.value) };
+                        const value = e.target.value;
+                        const points = value === '' ? 0 : parseInt(value) || 0;
+                        newFlags[index] = { ...newFlags[index], points };
                         setChallenge({ ...challenge, flags: newFlags });
                       }}
                       className="w-24 bg-gray-700 text-white px-3 py-2 rounded"
@@ -270,22 +276,46 @@ export default function ChallengeModal({
               type="file"
               multiple
               onChange={async (e) => {
-                const files = await Promise.all(
-                  Array.from(e.target.files || []).map(async (file) => {
-                    try {
-                      if (!('id' in challenge)) {
-                        throw new Error('Please save the challenge first before uploading files');
-                      }
-                      return await uploadFile(file, challenge.id);
-                    } catch (error) {
-                      const err = error as ApiError;
-                      toast.error(`Error uploading file: ${err.error}`);
-                      throw error;
-                    }
-                  })
-                );
+                const files = Array.from(e.target.files || []);
                 
-                setChallenge({ ...challenge, files: [...challenge.files, ...files] });
+                if (!('id' in challenge)) {
+                  // For new challenges, store files temporarily
+                  const tempFiles = files.map(file => ({
+                    id: `temp-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
+                    name: file.name,
+                    path: '',
+                    size: file.size,
+                    isTemp: true,
+                    file: file
+                  }));
+                  
+                  setChallenge({ 
+                    ...challenge, 
+                    files: [...(challenge.files || []), ...tempFiles] 
+                  });
+                  
+                  toast.success(`${files.length} file(s) added. Files will be uploaded when challenge is saved.`);
+                } else {
+                  // For existing challenges, upload immediately
+                  try {
+                    const uploadedFiles = await Promise.all(
+                      files.map(async (file) => {
+                        try {
+                          return await uploadFile(file, challenge.id);
+                        } catch (error) {
+                          const err = error as ApiError;
+                          toast.error(`Error uploading file: ${err.error}`);
+                          throw error;
+                        }
+                      })
+                    );
+                    
+                    setChallenge({ ...challenge, files: [...challenge.files, ...uploadedFiles] });
+                    toast.success(`${files.length} file(s) uploaded successfully.`);
+                  } catch (error) {
+                    console.error('Error uploading files:', error);
+                  }
+                }
               }}
               className="w-full bg-gray-700 text-white px-3 py-2 rounded"
             />
@@ -293,11 +323,26 @@ export default function ChallengeModal({
               <div className="mt-2 space-y-2">
                 {challenge.files.map((file, index) => (
                   <div key={file.id || index} className="flex items-center justify-between bg-gray-700 p-2 rounded">
-                    <span className="text-sm text-gray-300">{file.name}</span>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm text-gray-300">{file.name}</span>
+                      {file.isTemp && (
+                        <span className="text-xs text-yellow-400 bg-yellow-900 px-2 py-1 rounded">
+                          Pending Upload
+                        </span>
+                      )}
+                    </div>
                     <button
                       type="button"
                       onClick={async () => {
-                        await handleFileDelete(file);
+                        if (file.isTemp) {
+                          // Remove temporary file from state
+                          setChallenge({
+                            ...challenge,
+                            files: challenge.files.filter(f => f.id !== file.id)
+                          });
+                        } else {
+                          await handleFileDelete(file);
+                        }
                       }}
                       className="text-red-400 hover:text-red-300"
                     >
@@ -330,7 +375,9 @@ export default function ChallengeModal({
                     value={hint.cost}
                     onChange={(e) => {
                       const newHints = [...challenge.hints];
-                      newHints[index] = { ...newHints[index], cost: parseInt(e.target.value) };
+                      const value = e.target.value;
+                      const cost = value === '' ? 0 : parseInt(value) || 0;
+                      newHints[index] = { ...newHints[index], cost };
                       setChallenge({ ...challenge, hints: newHints });
                     }}
                     className="w-20 bg-gray-700 text-white px-3 py-2 rounded"
@@ -442,7 +489,9 @@ export default function ChallengeModal({
                         value={condition.timeThresholdSeconds || ''}
                         onChange={(e) => {
                           const newConditions = [...unlockConditions];
-                          newConditions[index] = { ...newConditions[index], timeThresholdSeconds: e.target.value ? parseInt(e.target.value) : null };
+                          const value = e.target.value;
+                          const timeThresholdSeconds = value === '' ? null : (parseInt(value) || null);
+                          newConditions[index] = { ...newConditions[index], timeThresholdSeconds };
                           setChallenge({ ...challenge, unlockConditions: newConditions });
                         }}
                         className="w-full bg-gray-600 text-white px-3 py-2 rounded text-sm"
@@ -503,8 +552,41 @@ const handleChallengeSubmit = async (
   e.preventDefault();
 
   try {
+    let createdChallenge: Challenge;
+    
     if (apiMethod === 'POST') {
-      await createChallenge(challenge as NewChallenge);
+      // Filter out temporary files for creation
+      const challengeData = {
+        ...challenge,
+        files: challenge.files?.filter(file => !file.isTemp) || []
+      };
+      
+      createdChallenge = await createChallenge(challengeData as NewChallenge);
+      
+      // Upload temporary files after challenge creation
+      const tempFiles = challenge.files?.filter(file => file.isTemp) || [];
+      if (tempFiles.length > 0) {
+        try {
+          const uploadedFiles = await Promise.all(
+            tempFiles.map(async (tempFile) => {
+              if (tempFile.file) {
+                return await uploadFile(tempFile.file, createdChallenge.id);
+              }
+              return null;
+            })
+          );
+          
+          // Filter out null results
+          const validUploadedFiles = uploadedFiles.filter(file => file !== null);
+          
+          if (validUploadedFiles.length > 0) {
+            toast.success(`${validUploadedFiles.length} file(s) uploaded successfully!`);
+          }
+        } catch (uploadError) {
+          console.error('Error uploading temporary files:', uploadError);
+          toast.error('Challenge created but some files failed to upload. You can upload them manually.');
+        }
+      }
     } else {
       await updateChallenge(challenge as Challenge);
     }

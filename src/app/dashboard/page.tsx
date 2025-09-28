@@ -112,6 +112,10 @@ export default function Dashboard() {
         }
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
+        // Set default values to prevent UI crashes
+        setLeaderboard({ teams: [], currentUserTeam: null });
+        setAnnouncements([]);
+        setActivities([]);
       }
     };
 

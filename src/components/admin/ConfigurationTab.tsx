@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useEffect } from 'react';
 import { SiteConfig, GameConfig, ApiError } from '@/types';
 import { fetchGameConfig, updateSiteConfig, updateGameConfig } from '@/utils/api';
@@ -11,8 +13,8 @@ interface ConfigurationTabProps {
 export default function ConfigurationTab({ siteConfig, fetchConfig }: ConfigurationTabProps) {
   const [config, setConfig] = useState<SiteConfig>(siteConfig);
   const [gameConfig, setGameConfig] = useState<GameConfig>({
-    startTime: new Date(Date.now() + 3600000), // Default 1 hour from now
-    endTime: new Date(Date.now() + 86400000), // Default 24 hours from now
+    startTime: new Date(),
+    endTime: new Date(),
     isActive: false,
     hasEndTime: true
   });

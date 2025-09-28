@@ -1,3 +1,5 @@
+'use client';
+
 import { useRef, useState, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Billboard, OrbitControls, Text } from '@react-three/drei';
@@ -6,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import { fetchCategories } from '@/utils/api';
 import { Challenge, ApiError } from '@/types';
+import ClientOnly from '@/components/common/ClientOnly';
 
 
 interface CategorySatellite {
@@ -233,8 +236,9 @@ export default function SpaceScene({ isMobile }: { isMobile?: boolean }) {
   }, []);
 
   return (
-    <div className={`${isMobile ? 'h-full' : 'fixed inset-0'}`}>
-      <Canvas camera={{ position: [0, 10, 15], fov: 90 }}>
+    <ClientOnly fallback={<div className={`${isMobile ? 'h-full' : 'fixed inset-0'} flex items-center justify-center text-white bg-black`}>Loading space scene...</div>}>
+      <div className={`${isMobile ? 'h-full' : 'fixed inset-0'}`}>
+        <Canvas camera={{ position: [0, 10, 15], fov: 90 }}>
         <ambientLight intensity={0.5} />
         <pointLight position={[10, 10, 10]} />
         <Earth />
@@ -255,6 +259,7 @@ export default function SpaceScene({ isMobile }: { isMobile?: boolean }) {
           maxDistance={30}
         />
       </Canvas>
-    </div>
+      </div>
+    </ClientOnly>
   );
 }

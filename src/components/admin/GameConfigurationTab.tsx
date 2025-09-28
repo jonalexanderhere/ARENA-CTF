@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useEffect } from 'react';
 import { ApiError, GameConfig } from '@/types';
 import { fetchGameConfig, updateGameConfig } from '@/utils/api';
@@ -6,8 +8,8 @@ import { toast } from 'react-hot-toast';
 
 export default function GameConfigurationTab() {
   const [gameConfig, setGameConfig] = useState<GameConfig>({
-    startTime: new Date(Date.now() + 3600000),
-    endTime: new Date(Date.now() + 86400000),
+    startTime: new Date(),
+    endTime: new Date(),
     isActive: false
   });
   const [hasEndTime, setHasEndTime] = useState(true);

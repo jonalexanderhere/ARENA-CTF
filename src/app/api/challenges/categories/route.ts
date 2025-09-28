@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { cache, CACHE_KEYS } from '@/lib/cache';
 
 interface ChallengeFile {
   id: string;
@@ -31,11 +32,33 @@ interface Challenge {
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
+    const cacheKey = `${CACHE_KEYS.CATEGORIES}_${session?.user?.teamId || 'anonymous'}`;
     
-    // Get all challenges
+    // Check cache first
+    const cachedData = cache.get(cacheKey);
+    if (cachedData) {
+      return NextResponse.json(cachedData);
+    }
+    
+    // Optimized query - get only necessary fields
     const challenges = await prisma.challenge.findMany({
-      include: {
-        files: true,
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        points: true,
+        category: true,
+        difficulty: true,
+        isActive: true,
+        isLocked: true,
+        files: {
+          select: {
+            id: true,
+            name: true,
+            path: true,
+            size: true
+          }
+        },
         submissions: {
           where: {
             isCorrect: true
@@ -52,7 +75,7 @@ export async function GET() {
       }
     });
 
-    // Get solved challenges for the current team if authenticated
+    // Get solved challenges for the current team if authenticated - optimized query
     const solvedChallengeIds = new Set();
     if (session?.user?.teamId) {
       const solvedChallenges = await prisma.submission.findMany({
@@ -94,10 +117,15 @@ export async function GET() {
     // Get unique categories
     const categories = Object.keys(challengesByCategory);
 
-    return NextResponse.json({
+    const result = {
       categories,
       challengesByCategory
-    });
+    };
+
+    // Cache the result for 2 minutes
+    cache.set(cacheKey, result, 2 * 60 * 1000);
+
+    return NextResponse.json(result);
   } catch (error) {
     console.error('Error fetching challenges by category:', error);
     return NextResponse.json(
