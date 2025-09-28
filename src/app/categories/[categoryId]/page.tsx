@@ -121,6 +121,11 @@ export default function CategoryPage() {
                 unlockConditions: [],
                 createdAt: new Date(0).toISOString(),
                 updatedAt: new Date(0).toISOString(),
+                solvedBy: c.solvedBy.map(s => ({
+                  id: s.teamId,
+                  name: 'Team ' + s.teamId,
+                  color: s.teamColor
+                }))
               }))}
               hoveredChallenge={hoveredChallenge}
               setHoveredChallenge={setHoveredChallenge}

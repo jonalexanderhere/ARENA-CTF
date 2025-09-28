@@ -497,9 +497,9 @@ export async function fetchSiteConfigurations(): Promise<SiteConfiguration[]> {
   console.error('Site config fetch failed after all retries:', lastError);
   // Return default configurations on error
   return [
-    { id: '1', key: 'site_title', value: 'PHOENIX ARENA CTF', updatedAt: new Date().toISOString() },
-    { id: '2', key: 'homepage_title', value: 'Welcome to PHOENIX ARENA CTF', updatedAt: new Date().toISOString() },
-    { id: '3', key: 'homepage_subtitle', value: 'Rise from the ashes! Epic cyber battles in the PHOENIX ARENA.', updatedAt: new Date().toISOString() }
+    { key: 'site_title', value: 'PHOENIX ARENA CTF' },
+    { key: 'homepage_title', value: 'Welcome to PHOENIX ARENA CTF' },
+    { key: 'homepage_subtitle', value: 'Rise from the ashes! Epic cyber battles in the PHOENIX ARENA.' }
   ];
 }
 

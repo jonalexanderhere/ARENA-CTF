@@ -285,6 +285,8 @@ export default function ChallengeModal({
                     name: file.name,
                     path: '',
                     size: file.size,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
                     isTemp: true,
                     file: file
                   }));

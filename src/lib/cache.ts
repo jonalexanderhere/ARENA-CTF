@@ -1,5 +1,14 @@
 // Simple in-memory cache for API responses
 
+export const CACHE_KEYS = {
+  LEADERBOARD: 'leaderboard',
+  CATEGORIES: 'categories',
+  CHALLENGES: 'challenges',
+  ANNOUNCEMENTS: 'announcements',
+  ACTIVITY: 'activity',
+  GAME_CONFIG: 'game_config'
+} as const;
+
 interface CacheEntry {
   data: unknown;
   timestamp: number;

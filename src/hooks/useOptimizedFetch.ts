@@ -35,8 +35,8 @@ export function useOptimizedFetch<T>(
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  const intervalRef = useRef<NodeJS.Timeout>();
-  const abortControllerRef = useRef<AbortController>();
+  const intervalRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const abortControllerRef = useRef<AbortController | undefined>(undefined);
 
   const fetchData = useCallback(async () => {
     if (!enabled) return;

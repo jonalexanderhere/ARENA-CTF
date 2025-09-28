@@ -232,10 +232,10 @@ export default function GameClock({ gameConfig, isOpen, setIsOpen, isMobile }: G
                   {/* START + END labels */}
                   <div className="w-full flex justify-between items-center text-xs uppercase tracking-widest relative">
                     <span>[{formatTime(gameConfig.startTime)}]</span>
-                    {currentTime.getTime() < new Date(gameConfig.startTime ?? '').getTime() && (
+                    {currentTime && currentTime.getTime() < new Date(gameConfig.startTime ?? '').getTime() && (
                       <span className="absolute left-1/2 transform -translate-x-1/2 text-yellow-300">[GAME STARTING IN]</span>
                     )}
-                    {gameConfig.hasEndTime && gameConfig.endTime && currentTime.getTime() > new Date(gameConfig.endTime ?? '').getTime() && (
+                    {gameConfig.hasEndTime && gameConfig.endTime && currentTime && currentTime.getTime() > new Date(gameConfig.endTime ?? '').getTime() && (
                       <span className="absolute left-1/2 transform -translate-x-1/2 text-red-300">[GAMEOVER]</span>
                     )}
                     <span>[{gameConfig.hasEndTime ? formatTime(gameConfig.endTime) : '∞'}]</span>

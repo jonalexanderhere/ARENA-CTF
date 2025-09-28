@@ -56,7 +56,8 @@ export async function GET() {
             id: true,
             name: true,
             path: true,
-            size: true
+            size: true,
+            challengeId: true
           }
         },
         submissions: {

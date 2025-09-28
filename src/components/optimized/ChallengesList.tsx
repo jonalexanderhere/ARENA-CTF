@@ -1,7 +1,7 @@
 import React, { memo, useMemo } from 'react';
 import { Challenge } from '@/types';
 import { useOptimizedFetch } from '@/hooks/useOptimizedFetch';
-import { OptimizedLoadingSpinner, SkeletonLoader } from '@/components/common/OptimizedLoadingSpinner';
+import { SkeletonLoader } from '@/components/common/OptimizedLoadingSpinner';
 
 interface ChallengesListProps {
   categoryId: string;

@@ -1,6 +1,6 @@
 import React, { memo, useMemo } from 'react';
 import { useOptimizedFetch } from '@/hooks/useOptimizedFetch';
-import { OptimizedLoadingSpinner, TableSkeleton } from '@/components/common/OptimizedLoadingSpinner';
+import { TableSkeleton } from '@/components/common/OptimizedLoadingSpinner';
 
 interface Team {
   id: string;
