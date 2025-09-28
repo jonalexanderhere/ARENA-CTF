@@ -10,6 +10,8 @@
     "prisma:seed": "ts-node --compiler-options {\\\"module\\\":\\\"commonjs\\\"}  prisma/seed.ts",
     "prisma:generate": "prisma generate",
     "vercel:setup": "node scripts/setup-vercel-db.js",
+    "db:setup": "node scripts/setup-full-database.js",
+    "db:seed": "node scripts/setup-full-database.js",
     "postinstall": "prisma generate"
   },
   "prisma": {
