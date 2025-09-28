@@ -1,14 +1,15 @@
 // Simple in-memory cache for API responses
+
 interface CacheEntry {
   data: unknown;
   timestamp: number;
-  ttl: number; // Time to live in milliseconds
+  ttl: number;
 }
 
-class MemoryCache {
+class Cache {
   private cache = new Map<string, CacheEntry>();
 
-  set(key: string, data: unknown, ttl: number = 5 * 60 * 1000) { // 5 minutes default
+  set(key: string, data: unknown, ttl: number = 5 * 60 * 1000): void {
     this.cache.set(key, {
       data,
       timestamp: Date.now(),
@@ -29,36 +30,30 @@ class MemoryCache {
     return entry.data;
   }
 
-  delete(key: string) {
-    this.cache.delete(key);
+  delete(key: string): boolean {
+    return this.cache.delete(key);
   }
 
-  clear() {
+  clear(): void {
     this.cache.clear();
   }
 
-  // Clear cache entries that match a pattern
-  clearPattern(pattern: string) {
-    const regex = new RegExp(pattern);
-    for (const key of this.cache.keys()) {
-      if (regex.test(key)) {
-        this.cache.delete(key);
-      }
+  has(key: string): boolean {
+    const entry = this.cache.get(key);
+    if (!entry) return false;
+
+    const now = Date.now();
+    if (now - entry.timestamp > entry.ttl) {
+      this.cache.delete(key);
+      return false;
     }
+
+    return true;
+  }
+
+  size(): number {
+    return this.cache.size;
   }
 }
 
-export const cache = new MemoryCache();
-
-// Cache keys
-export const CACHE_KEYS = {
-  CHALLENGES: 'challenges',
-  CATEGORIES: 'categories',
-  LEADERBOARD: 'leaderboard',
-  TEAMS: 'teams',
-  USERS: 'users',
-  CONFIG: 'config',
-  ANNOUNCEMENTS: 'announcements',
-  ACTIVITY: 'activity'
-} as const;
-
+export const cache = new Cache();
