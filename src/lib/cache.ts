@@ -1,6 +1,6 @@
 // Simple in-memory cache for API responses
 interface CacheEntry {
-  data: any;
+  data: unknown;
   timestamp: number;
   ttl: number; // Time to live in milliseconds
 }
@@ -8,7 +8,7 @@ interface CacheEntry {
 class MemoryCache {
   private cache = new Map<string, CacheEntry>();
 
-  set(key: string, data: any, ttl: number = 5 * 60 * 1000) { // 5 minutes default
+  set(key: string, data: unknown, ttl: number = 5 * 60 * 1000) { // 5 minutes default
     this.cache.set(key, {
       data,
       timestamp: Date.now(),
@@ -16,7 +16,7 @@ class MemoryCache {
     });
   }
 
-  get(key: string): any | null {
+  get(key: string): unknown | null {
     const entry = this.cache.get(key);
     if (!entry) return null;
 

@@ -8,7 +8,7 @@ interface ApiCallOptions {
 }
 
 // Debounce function for search inputs
-export function debounce<T extends (...args: any[]) => any>(
+export function debounce<T extends (...args: unknown[]) => unknown>(
   func: T,
   wait: number
 ): (...args: Parameters<T>) => void {
@@ -20,7 +20,7 @@ export function debounce<T extends (...args: any[]) => any>(
 }
 
 // Throttle function for scroll events
-export function throttle<T extends (...args: any[]) => any>(
+export function throttle<T extends (...args: unknown[]) => unknown>(
   func: T,
   limit: number
 ): (...args: Parameters<T>) => void {
@@ -142,11 +142,11 @@ export function optimizeImageUrl(url: string, width?: number, height?: number): 
 
 // Memory usage monitoring
 export function getMemoryUsage(): number {
-  if (typeof window === 'undefined' || !(window as any).performance?.memory) {
+  if (typeof window === 'undefined' || !(window as Window & { performance?: { memory?: { usedJSHeapSize: number; jsHeapSizeLimit: number } } }).performance?.memory) {
     return 0;
   }
   
-  const memory = (window as any).performance.memory;
+  const memory = (window as Window & { performance: { memory: { usedJSHeapSize: number; jsHeapSizeLimit: number } } }).performance.memory;
   return memory.usedJSHeapSize / memory.jsHeapSizeLimit;
 }
 
