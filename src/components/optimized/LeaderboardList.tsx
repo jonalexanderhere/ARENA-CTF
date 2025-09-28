@@ -127,4 +127,3 @@ const LeaderboardRow = memo<{
 LeaderboardRow.displayName = 'LeaderboardRow';
 
 export default LeaderboardList;
-
