@@ -122,6 +122,46 @@ export async function DELETE(req: Request) {
   try {
     const { id } = await req.json();
 
+    if (!id) {
+      return NextResponse.json({ error: 'Challenge ID is required' }, { status: 400 });
+    }
+
+    // Check if challenge exists first
+    const existingChallenge = await prisma.challenge.findUnique({
+      where: { id },
+      select: { id: true, title: true }
+    });
+
+    if (!existingChallenge) {
+      return NextResponse.json({ error: 'Challenge not found' }, { status: 404 });
+    }
+
+    // Delete related records first (cascade delete)
+    await prisma.submission.deleteMany({
+      where: { challengeId: id }
+    });
+
+    await prisma.teamHint.deleteMany({
+      where: { hint: { challengeId: id } }
+    });
+
+    await prisma.hint.deleteMany({
+      where: { challengeId: id }
+    });
+
+    await prisma.challengeFlag.deleteMany({
+      where: { challengeId: id }
+    });
+
+    await prisma.unlockCondition.deleteMany({
+      where: { challengeId: id }
+    });
+
+    await prisma.challengeFile.deleteMany({
+      where: { challengeId: id }
+    });
+
+    // Finally delete the challenge
     await prisma.challenge.delete({
       where: { id },
     });
@@ -129,6 +169,14 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ message: 'Challenge deleted successfully' });
   } catch (error) {
     console.error('Error deleting challenge:', error);
+    
+    // Handle specific Prisma errors
+    if (error instanceof Error) {
+      if (error.message.includes('Record to delete does not exist')) {
+        return NextResponse.json({ error: 'Challenge not found' }, { status: 404 });
+      }
+    }
+    
     return NextResponse.json(
       { error: 'Error deleting challenge' },
       { status: 500 }

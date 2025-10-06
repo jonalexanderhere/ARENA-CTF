@@ -4,7 +4,21 @@ import bcrypt from 'bcryptjs';
 
 export async function POST(req: Request) {
   try {
-    const { alias, password, name, teamName, teamCode, teamOption, teamIcon, teamColor } = await req.json();
+    const body = await req.json();
+    console.log('Signup request body:', body);
+    
+    const { alias, password, name, teamName, teamCode, teamOption, teamIcon, teamColor } = body;
+    
+    // Validate required fields
+    if (!alias || !password || !name) {
+      console.log('Missing required fields:', { alias: !!alias, password: !!password, name: !!name });
+      return NextResponse.json({ error: 'Alias, password, and name are required' }, { status: 400 });
+    }
+    
+    if (!teamOption) {
+      console.log('Missing teamOption');
+      return NextResponse.json({ error: 'Team option is required' }, { status: 400 });
+    }
 
     // Enforce max length constraints
     if (alias && alias.length > 32) {
@@ -48,15 +62,50 @@ export async function POST(req: Request) {
 
     if (teamOption === 'create') {
       // Create new team
-      if (!teamName) {
+      if (!teamName || teamName.trim() === '') {
+        console.log('Missing team name for create option');
         return NextResponse.json(
           { error: 'Team name is required when creating a new team' },
           { status: 400 }
         );
       }
 
-      // Generate a random 6-character team code
-      const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+      // Check if team name already exists (case-insensitive for SQLite compatibility)
+      const existingTeam = await prisma.team.findFirst({
+        where: {
+          name: teamName.trim()
+        }
+      });
+
+      if (existingTeam) {
+        console.log('Team name already exists:', teamName);
+        return NextResponse.json(
+          { error: 'Team name already exists. Please choose a different name.' },
+          { status: 400 }
+        );
+      }
+
+      // Generate a unique team code
+      let code;
+      let isCodeUnique = false;
+      let attempts = 0;
+      const maxAttempts = 10;
+      
+      while (!isCodeUnique && attempts < maxAttempts) {
+        code = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+        const existingCode = await prisma.team.findFirst({
+          where: { code }
+        });
+        isCodeUnique = !existingCode;
+        attempts++;
+      }
+      
+      if (!isCodeUnique) {
+        return NextResponse.json(
+          { error: 'Unable to generate unique team code. Please try again.' },
+          { status: 500 }
+        );
+      }
 
       const team = await prisma.team.create({
         data: {
@@ -71,7 +120,8 @@ export async function POST(req: Request) {
       isTeamLeader = true;
     } else if (teamOption === 'join') {
       // Join existing team
-      if (!teamCode) {
+      if (!teamCode || teamCode.trim() === '') {
+        console.log('Missing team code for join option');
         return NextResponse.json(
           { error: 'Team code is required when joining a team' },
           { status: 400 }
@@ -116,6 +166,35 @@ export async function POST(req: Request) {
     });
   } catch (error) {
     console.error('Error creating user:', error);
+    
+    // Handle specific Prisma errors
+    if (error instanceof Error) {
+      if (error.message.includes('Unique constraint failed on the fields: (`name`)')) {
+        return NextResponse.json(
+          { error: 'Team name already exists. Please choose a different name.' },
+          { status: 400 }
+        );
+      }
+      if (error.message.includes('Unique constraint failed on the fields: (`alias`)')) {
+        return NextResponse.json(
+          { error: 'Username already exists. Please choose a different alias.' },
+          { status: 400 }
+        );
+      }
+      if (error.message.includes('Unique constraint')) {
+        return NextResponse.json(
+          { error: 'User or team already exists' },
+          { status: 400 }
+        );
+      }
+      if (error.message.includes('Invalid value')) {
+        return NextResponse.json(
+          { error: 'Invalid input data' },
+          { status: 400 }
+        );
+      }
+    }
+    
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

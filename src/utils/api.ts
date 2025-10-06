@@ -405,7 +405,9 @@ export async function deleteChallenge(id: string): Promise<void> {
 
   if (!response.ok) {
     const data = await response.json();
-    throw new Error(data.error || 'Failed to delete challenge');
+    const error = new Error(data.error || 'Failed to delete challenge');
+    (error as any).error = data.error;
+    throw error;
   }
 }
 

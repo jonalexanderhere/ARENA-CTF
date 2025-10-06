@@ -8,17 +8,17 @@ async function setupFullDatabase() {
 
     // Create admin users
     const adminUsers = [
-      { name: 'Admin Phoenix', alias: 'phoenix_admin', email: 'admin@phoenixarena.ctf', password: 'admin123', role: 'ADMIN' },
-      { name: 'Admin Arena', alias: 'arena_admin', email: 'arena@phoenixarena.ctf', password: 'admin123', role: 'ADMIN' },
-      { name: 'Admin CTF', alias: 'ctf_admin', email: 'ctf@phoenixarena.ctf', password: 'admin123', role: 'ADMIN' },
-      { name: 'Admin Master', alias: 'master_admin', email: 'master@phoenixarena.ctf', password: 'admin123', role: 'ADMIN' },
-      { name: 'Admin System', alias: 'system_admin', email: 'system@phoenixarena.ctf', password: 'admin123', role: 'ADMIN' }
+      { name: 'Admin Phoenix', alias: 'phoenix_admin', password: 'admin123', isAdmin: true },
+      { name: 'Admin Arena', alias: 'arena_admin', password: 'admin123', isAdmin: true },
+      { name: 'Admin CTF', alias: 'ctf_admin', password: 'admin123', isAdmin: true },
+      { name: 'Admin Master', alias: 'master_admin', password: 'admin123', isAdmin: true },
+      { name: 'Admin System', alias: 'system_admin', password: 'admin123', isAdmin: true }
     ];
 
     console.log('👥 Creating admin users...');
     for (const admin of adminUsers) {
       await prisma.user.upsert({
-        where: { email: admin.email },
+        where: { alias: admin.alias },
         update: admin,
         create: admin
       });
@@ -26,14 +26,14 @@ async function setupFullDatabase() {
 
     // Create regular users
     const regularUsers = [
-      { name: 'Player One', alias: 'player1', email: 'player1@phoenixarena.ctf', password: 'player123', role: 'USER' },
-      { name: 'Player Two', alias: 'player2', email: 'player2@phoenixarena.ctf', password: 'player123', role: 'USER' }
+      { name: 'Player One', alias: 'player1', password: 'player123', isAdmin: false },
+      { name: 'Player Two', alias: 'player2', password: 'player123', isAdmin: false }
     ];
 
     console.log('👤 Creating regular users...');
     for (const user of regularUsers) {
       await prisma.user.upsert({
-        where: { email: user.email },
+        where: { alias: user.alias },
         update: user,
         create: user
       });
@@ -41,8 +41,8 @@ async function setupFullDatabase() {
 
     // Create teams
     const teams = [
-      { name: 'RidhoDatabase', icon: '🔥', color: '#FF6B35', score: 0 },
-      { name: 'MonokKiller', icon: '⚡', color: '#4ECDC4', score: 0 }
+      { name: 'RidhoDatabase', code: 'RIDHO001', icon: 'GiSpaceship', color: '#FF6B35', score: 0 },
+      { name: 'MonokKiller', code: 'MONOK001', icon: 'GiRocket', color: '#4ECDC4', score: 0 }
     ];
 
     console.log('🏆 Creating teams...');
@@ -73,7 +73,6 @@ async function setupFullDatabase() {
     // Create game configuration
     const gameConfig = {
       startTime: new Date().toISOString(),
-      hasEndTime: false,
       endTime: null,
       isActive: true
     };
@@ -121,11 +120,14 @@ async function setupFullDatabase() {
 
     console.log('🏁 Creating sample challenges...');
     for (const challenge of challenges) {
-      await prisma.challenge.upsert({
-        where: { title: challenge.title },
-        update: challenge,
-        create: challenge
+      const existing = await prisma.challenge.findFirst({
+        where: { title: challenge.title }
       });
+      if (!existing) {
+        await prisma.challenge.create({
+          data: challenge
+        });
+      }
     }
 
     console.log('✅ Database setup completed successfully!');

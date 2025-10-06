@@ -17,6 +17,10 @@ dist/
 .env.test.local
 .env.production.local
 
+# Production files (keep examples in repo)
+# docker-compose.prod.yml
+# Caddyfile
+
 # Database
 prisma/dev.db
 prisma/dev.db-journal

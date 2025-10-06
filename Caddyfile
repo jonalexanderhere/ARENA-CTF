@@ -1,0 +1,51 @@
+# Phoenix Arena CTF - Caddy Configuration
+# Replace with your domain for HTTPS
+
+:80 {
+  # Security headers
+  header {
+    # Security headers
+    Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+    X-Content-Type-Options "nosniff"
+    X-Frame-Options "DENY"
+    X-XSS-Protection "1; mode=block"
+    Referrer-Policy "strict-origin-when-cross-origin"
+    Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' ws: wss:; frame-ancestors 'none';"
+    
+    # Remove server information
+    -Server
+    -X-Powered-By
+  }
+
+  # Compression
+  encode zstd gzip
+
+  # Rate limiting
+  rate_limit {
+    zone static {
+      key {remote_host}
+      events 100
+      window 1m
+    }
+  }
+
+  # Reverse proxy to app
+  reverse_proxy app:3000 {
+    header_up Host {host}
+    header_up X-Real-IP {remote_host}
+    header_up X-Forwarded-For {remote_host}
+    header_up X-Forwarded-Proto {scheme}
+  }
+
+  # Logging
+  log {
+    output file /var/log/caddy/access.log
+    format json
+  }
+}
+
+# For HTTPS with domain (uncomment and replace domain):
+# ctf.yourdomain.com {
+#   # Same configuration as above
+#   # Caddy will automatically get SSL certificate
+# }

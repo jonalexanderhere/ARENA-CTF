@@ -58,13 +58,36 @@ export default function ConfigurationTab({ siteConfig, fetchConfig }: Configurat
     try {
       console.log('Current gameConfig:', gameConfig);
       
+      // Validate dates before processing
+      const startDate = gameConfig.startTime instanceof Date ? gameConfig.startTime : new Date(gameConfig.startTime);
+      const endDate = gameConfig.endTime instanceof Date ? gameConfig.endTime : new Date(gameConfig.endTime);
+      
+      if (isNaN(startDate.getTime())) {
+        toast.error('Invalid start time');
+        return;
+      }
+      
+      if (hasEndTime && isNaN(endDate.getTime())) {
+        toast.error('Invalid end time');
+        return;
+      }
+      
+      // Check if required fields are present
+      if (!gameConfig.startTime) {
+        toast.error('Start time is required');
+        return;
+      }
+      
+      if (hasEndTime && !gameConfig.endTime) {
+        toast.error('End time is required when end time is enabled');
+        return;
+      }
+      
       const updatedConfig: GameConfig = {
         ...gameConfig,
         hasEndTime,
-        startTime: gameConfig.startTime instanceof Date ? gameConfig.startTime.toISOString() : gameConfig.startTime,
-        endTime: hasEndTime && gameConfig.endTime ? 
-          (gameConfig.endTime instanceof Date ? gameConfig.endTime.toISOString() : gameConfig.endTime) : 
-          null
+        startTime: startDate.toISOString(),
+        endTime: hasEndTime ? endDate.toISOString() : null
       };
 
       console.log('Sending to API:', updatedConfig);
@@ -89,8 +112,22 @@ export default function ConfigurationTab({ siteConfig, fetchConfig }: Configurat
 
   const handleTimeChange = (field: 'startTime' | 'endTime', value: string) => {
     console.log(`Setting ${field} to:`, value);
+    
+    // Handle empty string
+    if (!value || value.trim() === '') {
+      console.log(`Empty value for ${field}, skipping update`);
+      return;
+    }
+    
     // Value comes in as local time, convert to UTC
     const localDate = new Date(value);
+    
+    // Validate date before setting
+    if (isNaN(localDate.getTime())) {
+      console.error(`Invalid date for ${field}:`, value);
+      return;
+    }
+    
     setGameConfig(prev => ({
       ...prev,
       [field]: localDate
@@ -101,6 +138,13 @@ export default function ConfigurationTab({ siteConfig, fetchConfig }: Configurat
     if (!date) return '';
     // Convert to local timezone for input
     const d = new Date(date);
+    
+    // Validate date before processing
+    if (isNaN(d.getTime())) {
+      console.error('Invalid date in formatDateForInput:', date);
+      return '';
+    }
+    
     // Adjust for local timezone offset
     const tzOffset = d.getTimezoneOffset() * 60000; // offset in milliseconds
     const localISOTime = (new Date(d.getTime() - tzOffset)).toISOString().slice(0, 16);

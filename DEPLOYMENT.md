@@ -1,225 +1,285 @@
-# 🚀 PHOENIX ARENA CTF - Vercel Deployment Guide
+# 🚀 Phoenix Arena CTF - Production Deployment Guide
+
+This guide covers secure deployment of Phoenix Arena CTF on VPS with Docker and Caddy reverse proxy.
+
+## 🔒 Security Features
+
+- **Non-root containers** with minimal privileges
+- **Security headers** (HSTS, CSP, X-Frame-Options, etc.)
+- **Rate limiting** to prevent abuse
+- **Read-only filesystem** where possible
+- **Health checks** for container monitoring
+- **Automatic SSL** with Let's Encrypt (when using domain)
 
 ## 📋 Prerequisites
 
-- GitHub account
-- Vercel account
-- PostgreSQL database (recommended: Neon, Supabase, or PlanetScale)
+- VPS with Ubuntu 20.04+ or similar
+- Domain name (optional, for HTTPS)
+- Root or sudo access
+- Docker and Docker Compose
 
-## 🔧 Step-by-Step Deployment
+## 🛠️ Quick Deployment
 
-### 1. Database Setup
-
-#### Option A: Neon (Recommended)
-1. Go to [Neon](https://neon.tech)
-2. Create a new project
-3. Copy the connection string
-4. Use format: `postgresql://username:password@host:port/database?sslmode=require`
-
-#### Option B: Supabase
-1. Go to [Supabase](https://supabase.com)
-2. Create a new project
-3. Go to Settings > Database
-4. Copy the connection string
-
-#### Option C: PlanetScale
-1. Go to [PlanetScale](https://planetscale.com)
-2. Create a new database
-3. Copy the connection string
-
-### 2. Vercel Deployment
-
-#### Method 1: GitHub Integration (Recommended)
-1. **Fork/Clone Repository**
-   ```bash
-   git clone https://github.com/jonalexanderhere/ARENA-CTF.git
-   cd ARENA-CTF
-   ```
-
-2. **Connect to Vercel**
-   - Go to [Vercel Dashboard](https://vercel.com/dashboard)
-   - Click "New Project"
-   - Import your GitHub repository
-   - Select the repository
-
-3. **Configure Environment Variables**
-   In Vercel dashboard, add these environment variables:
-   ```
-   DATABASE_URL=your_postgresql_connection_string
-   NEXTAUTH_SECRET=your_random_secret_key_here
-   NEXTAUTH_URL=https://your-app-name.vercel.app
-   INGEST_CHALLENGES_AT_STARTUP=true
-   CHALLENGES_DIR=./challenges
-   ```
-
-4. **Deploy**
-   - Click "Deploy"
-   - Wait for deployment to complete
-
-#### Method 2: Vercel CLI
-1. **Install Vercel CLI**
-   ```bash
-   npm i -g vercel
-   ```
-
-2. **Login to Vercel**
-   ```bash
-   vercel login
-   ```
-
-3. **Deploy**
-   ```bash
-   vercel
-   ```
-
-4. **Set Environment Variables**
-   ```bash
-   vercel env add DATABASE_URL
-   vercel env add NEXTAUTH_SECRET
-   vercel env add NEXTAUTH_URL
-   ```
-
-### 3. Database Migration
-
-After deployment, run the database setup:
+### 1. Server Setup
 
 ```bash
-# Using Vercel CLI
-vercel exec "npm run vercel:setup"
+# Update system
+apt update && apt upgrade -y
 
-# Or using the Vercel dashboard
-# Go to Functions tab and run the setup function
+# Install Docker
+curl -fsSL https://get.docker.com | sh
+usermod -aG docker $USER
+
+# Install firewall
+apt install -y ufw
+ufw allow 22/tcp
+ufw allow 80,443/tcp
+ufw --force enable
 ```
 
-### 4. Verify Deployment
+### 2. Clone and Configure
 
-1. **Check Application**
-   - Visit your Vercel URL
-   - Test login with admin credentials
-   - Verify all features work
+```bash
+# Clone repository
+git clone https://github.com/asynchronous-x/orbital-ctf.git
+cd orbital-ctf
 
-2. **Test Database**
-   - Login as admin
-   - Check teams and challenges
-   - Verify real-time updates
+# Copy environment template
+cp env.example .env
 
-## 🔐 Default Credentials
+# Edit environment variables
+nano .env
+```
 
-### Admin Accounts
-- **phoenix1** - phoenix123
-- **phoenix2** - phoenix123
-- **phoenix3** - phoenix123
-- **phoenix4** - phoenix123
-- **phoenix5** - phoenix123
+### 3. Environment Variables
 
-### Team Accounts
-- **RidhoDatabase**: ridho_leader, ridho_member1, ridho_member2
-- **MonokKiller**: monok_leader, monok_member1
+Update `.env` with your values:
 
-## 🛠️ Troubleshooting
+```env
+# Database
+DATABASE_URL="file:/app/prisma/dev.db"
+
+# NextAuth (REQUIRED: Change this!)
+NEXTAUTH_SECRET="your-very-secure-secret-here"
+NEXTAUTH_URL="https://yourdomain.com"  # or http://your-ip for testing
+
+# Challenge Configuration
+INGEST_CHALLENGES_AT_STARTUP=false
+CHALLENGES_DIR="/challenges"
+
+# Environment
+NODE_ENV="production"
+```
+
+### 4. Caddy Configuration
+
+For **HTTP only** (IP address):
+```bash
+# Caddyfile is already configured for :80
+# No changes needed
+```
+
+For **HTTPS with domain**:
+```bash
+# Edit Caddyfile and replace :80 with your domain
+nano Caddyfile
+```
+
+Replace the first line:
+```
+# Change this:
+:80 {
+
+# To this:
+yourdomain.com {
+```
+
+### 5. Deploy
+
+```bash
+# Build and start services
+docker compose -f docker-compose.prod.yml build
+docker compose -f docker-compose.prod.yml up -d
+
+# Check status
+docker compose -f docker-compose.prod.yml ps
+
+# View logs
+docker compose -f docker-compose.prod.yml logs -f app
+```
+
+### 6. Verify Deployment
+
+- **HTTP**: `http://your-ip` or `http://yourdomain.com`
+- **HTTPS**: `https://yourdomain.com` (if domain configured)
+- **Health check**: `http://your-ip/api/health`
+
+## 🔧 Management Commands
+
+### Update Application
+```bash
+cd /path/to/orbital-ctf
+git pull
+docker compose -f docker-compose.prod.yml build
+docker compose -f docker-compose.prod.yml up -d
+```
+
+### View Logs
+```bash
+# All services
+docker compose -f docker-compose.prod.yml logs -f
+
+# Specific service
+docker compose -f docker-compose.prod.yml logs -f app
+docker compose -f docker-compose.prod.yml logs -f caddy
+```
+
+### Backup Data
+```bash
+# Backup database
+docker run --rm -v orbital-ctf_sqlite_data:/data -v $(pwd):/backup alpine tar czf /backup/db-backup-$(date +%Y%m%d).tar.gz -C /data .
+
+# Backup uploads
+docker run --rm -v orbital-ctf_uploads:/data -v $(pwd):/backup alpine tar czf /backup/uploads-backup-$(date +%Y%m%d).tar.gz -C /data .
+```
+
+### Restart Services
+```bash
+# Restart all
+docker compose -f docker-compose.prod.yml restart
+
+# Restart specific service
+docker compose -f docker-compose.prod.yml restart app
+```
+
+## 🛡️ Security Hardening
+
+### Additional VPS Security
+
+```bash
+# Create non-root user
+adduser deploy
+usermod -aG sudo deploy
+
+# Configure SSH (optional)
+sed -i 's/^#\?PermitRootLogin .*/PermitRootLogin no/' /etc/ssh/sshd_config
+sed -i 's/^#\?PasswordAuthentication .*/PasswordAuthentication no/' /etc/ssh/sshd_config
+systemctl restart ssh
+
+# Install fail2ban
+apt install -y fail2ban
+systemctl enable fail2ban
+```
+
+### Container Security
+
+The production setup includes:
+- Non-root user execution
+- Read-only filesystem
+- Dropped capabilities
+- Security headers
+- Rate limiting
+- Health checks
+
+## 🐛 Troubleshooting
 
 ### Common Issues
 
-1. **Database Connection Error**
-   - Check DATABASE_URL format
-   - Ensure database is accessible
-   - Verify SSL settings
+1. **Port already in use**
+   ```bash
+   sudo netstat -tulpn | grep :80
+   sudo systemctl stop apache2  # if Apache is running
+   ```
 
-2. **Build Errors**
-   - Check Prisma client generation
-   - Verify all dependencies installed
-   - Check for TypeScript errors
+2. **Permission denied**
+   ```bash
+   sudo chown -R $USER:$USER /path/to/orbital-ctf
+   ```
 
-3. **Authentication Issues**
-   - Verify NEXTAUTH_SECRET is set
-   - Check NEXTAUTH_URL matches domain
-   - Ensure cookies are enabled
+3. **Container won't start**
+   ```bash
+   docker compose -f docker-compose.prod.yml logs app
+   ```
 
-### Performance Optimization
+4. **Database issues**
+   ```bash
+   # Reset database
+   docker compose -f docker-compose.prod.yml down
+   docker volume rm orbital-ctf_sqlite_data
+   docker compose -f docker-compose.prod.yml up -d
+   ```
 
-1. **Database Indexing**
-   - Add indexes for frequently queried fields
-   - Use connection pooling
-   - Monitor query performance
+### Health Check
 
-2. **Caching**
-   - Enable Vercel Edge caching
-   - Use Redis for session storage
-   - Implement API response caching
+Monitor application health:
+```bash
+curl http://your-ip/api/health
+```
+
+Expected response:
+```json
+{
+  "status": "healthy",
+  "timestamp": "2024-01-01T00:00:00.000Z",
+  "uptime": 123.45
+}
+```
 
 ## 📊 Monitoring
 
-### Vercel Analytics
-- Enable Vercel Analytics
-- Monitor performance metrics
-- Track user engagement
+### Resource Usage
+```bash
+# Container stats
+docker stats
 
-### Database Monitoring
-- Set up database monitoring
-- Monitor connection usage
-- Track query performance
+# Disk usage
+docker system df
+```
 
-## 🔄 Updates and Maintenance
+### Log Rotation
+```bash
+# Configure log rotation for Caddy
+sudo nano /etc/logrotate.d/caddy
+```
 
-### Regular Updates
-1. **Dependencies**
-   ```bash
-   npm update
-   ```
+Add:
+```
+/var/log/caddy/*.log {
+    daily
+    missingok
+    rotate 7
+    compress
+    delaycompress
+    notifempty
+    create 0644 root root
+}
+```
 
-2. **Database Migrations**
-   ```bash
-   npx prisma migrate deploy
-   ```
+## 🔄 Updates
 
-3. **Redeploy**
-   ```bash
-   vercel --prod
-   ```
+### Application Updates
+```bash
+git pull
+docker compose -f docker-compose.prod.yml build
+docker compose -f docker-compose.prod.yml up -d
+```
 
-### Backup Strategy
-1. **Database Backups**
-   - Set up automated backups
-   - Store backups securely
-   - Test restore procedures
+### Security Updates
+```bash
+# Update system packages
+apt update && apt upgrade -y
 
-2. **Code Backups**
-   - Use Git for version control
-   - Create release tags
-   - Maintain deployment history
+# Update Docker images
+docker compose -f docker-compose.prod.yml pull
+docker compose -f docker-compose.prod.yml up -d
+```
 
-## 🎯 Production Checklist
+## 📞 Support
 
-- [ ] Database configured and migrated
-- [ ] Environment variables set
-- [ ] SSL certificate active
-- [ ] Domain configured
-- [ ] Analytics enabled
-- [ ] Monitoring set up
-- [ ] Backup strategy implemented
-- [ ] Performance optimized
-- [ ] Security hardened
-- [ ] Documentation updated
-
-## 🆘 Support
-
-If you encounter issues:
-
-1. **Check Vercel Logs**
-   - Go to Functions tab
-   - Check deployment logs
-   - Look for error messages
-
-2. **Database Issues**
-   - Check connection string
-   - Verify database permissions
-   - Test connection locally
-
-3. **Application Issues**
-   - Check browser console
-   - Verify environment variables
-   - Test API endpoints
+- **Issues**: [GitHub Issues](https://github.com/asynchronous-x/orbital-ctf/issues)
+- **Documentation**: [README.md](README.md)
+- **Security**: Report security issues privately
 
 ---
 
-**🔥 PHOENIX ARENA CTF - Ready for Production! 🔥**
+**🔥 Ready to rise in the Phoenix Arena! 🔥**

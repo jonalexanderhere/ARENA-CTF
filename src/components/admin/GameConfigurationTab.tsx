@@ -38,19 +38,48 @@ export default function GameConfigurationTab() {
   const handleGameConfigUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      // Validate dates before processing
+      const startDate = gameConfig.startTime ? new Date(gameConfig.startTime) : null;
+      const endDate = gameConfig.endTime ? new Date(gameConfig.endTime) : null;
+      
+      if (startDate && isNaN(startDate.getTime())) {
+        toast.error('Invalid start time');
+        return;
+      }
+      
+      if (hasEndTime && endDate && isNaN(endDate.getTime())) {
+        toast.error('Invalid end time');
+        return;
+      }
+      
+      // Check if required fields are present
+      if (!startDate) {
+        toast.error('Start time is required');
+        return;
+      }
+      
+      if (hasEndTime && !endDate) {
+        toast.error('End time is required when end time is enabled');
+        return;
+      }
+      
       const updatedConfig = {
         ...gameConfig,
         hasEndTime,
-        startTime: gameConfig.startTime ? new Date(gameConfig.startTime).toISOString() : null,
-        endTime: hasEndTime && gameConfig.endTime ? new Date(gameConfig.endTime).toISOString() : null
+        startTime: startDate ? startDate.toISOString() : null,
+        endTime: hasEndTime && endDate ? endDate.toISOString() : null
       };
 
       const data = await updateGameConfig(updatedConfig);
       
+      // Validate response dates before setting
+      const responseStartDate = data.startTime ? new Date(data.startTime) : null;
+      const responseEndDate = data.endTime ? new Date(data.endTime) : null;
+      
       setGameConfig({
         ...data,
-        startTime: data.startTime ? new Date(data.startTime).toISOString() : null,
-        endTime: data.endTime ? new Date(data.endTime).toISOString() : null,
+        startTime: responseStartDate && !isNaN(responseStartDate.getTime()) ? responseStartDate.toISOString() : null,
+        endTime: responseEndDate && !isNaN(responseEndDate.getTime()) ? responseEndDate.toISOString() : null,
       });
       setHasEndTime(data.hasEndTime !== false);
       toast.success('Game time settings updated successfully!');
@@ -63,7 +92,21 @@ export default function GameConfigurationTab() {
 
   const handleTimeChange = (field: 'startTime' | 'endTime', value: string) => {
     console.log(`Setting ${field} to:`, value);
+    
+    // Handle empty string
+    if (!value || value.trim() === '') {
+      console.log(`Empty value for ${field}, skipping update`);
+      return;
+    }
+    
     const localDate = new Date(value);
+    
+    // Validate date before calling toISOString
+    if (isNaN(localDate.getTime())) {
+      console.error(`Invalid date for ${field}:`, value);
+      return;
+    }
+    
     setGameConfig(prev => ({
       ...prev,
       [field]: localDate.toISOString()
@@ -73,6 +116,13 @@ export default function GameConfigurationTab() {
   const formatDateForInput = (date: Date | string | null) => {
     if (!date) return '';
     const d = new Date(date);
+    
+    // Validate date before processing
+    if (isNaN(d.getTime())) {
+      console.error('Invalid date in formatDateForInput:', date);
+      return '';
+    }
+    
     const tzOffset = d.getTimezoneOffset() * 60000;
     const localISOTime = (new Date(d.getTime() - tzOffset)).toISOString().slice(0, 16);
     return localISOTime;

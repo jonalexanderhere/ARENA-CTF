@@ -56,10 +56,19 @@ export default function ChallengesTab() {
       await deleteChallenge(id);
       setChallengeToDelete(null);
       await fetchChallenges();
+      toast.success('Challenge deleted successfully');
     } catch (error) {
       const err = error as ApiError;
       console.error('Error deleting challenge:', err);
-      toast.error(err.error || 'Failed to delete challenge');
+      
+      // Provide more specific error messages
+      if (err.error?.includes('not found')) {
+        toast.error('Challenge not found - it may have already been deleted');
+      } else if (err.error?.includes('Unauthorized')) {
+        toast.error('You do not have permission to delete challenges');
+      } else {
+        toast.error(err.error || 'Failed to delete challenge');
+      }
     }
   };
 
